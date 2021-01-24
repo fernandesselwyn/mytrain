@@ -16,10 +16,10 @@ spec:
       labels:
         run: connectApi
     spec:
-#      volumes:
-#        - name: hello-kube-claim
-#          persistentVolumeClaim:
-#            claimName: hello-kube-pvc
+      volumes:
+        - name: hello-kube-claim
+          persistentVolumeClaim:
+            claimName: hello-kube-pvc
       containers:
         - name: client
           image: fernandesselwyn/hello-kube
