@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-kube-api
+  labels:
+    run: connectApi
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      run: connectApi
+  template:
+    metadata:
+      labels:
+        run: connectApi
+    spec:
+      volumes:
+        - name: hello-kube-claim
+          persistentVolumeClaim:
+            claimName: hello-kube-pvc
+      containers:
+        - name: client
+          image: fernandesselwyn/hello-kube
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+           - name: hello-kube-claim
+             mountPath: /app/data
+      imagePullSecrets:
+        - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-kube-node-port
+spec:
+  type: NodePort
+  ports:
+    - port: 3050
+      targetPort: 3000
+      nodePort: 32020
+  selector:
+    run: connectApi

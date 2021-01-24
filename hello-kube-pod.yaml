@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-kube-api 
+  labels:
+    run: connectApi
+spec:
+  containers:
+  - name: client
+    image: fernandesselwyn/hello-kube 
+    ports:
+        - containerPort: 3000
+  imagePullSecrets:
+  - name: regcred

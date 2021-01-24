@@ -1,0 +1,13 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: hello-kube-pvc
+  labels:
+    run: connectApi
+spec:
+  storageClassName: minikube-nas
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10M
