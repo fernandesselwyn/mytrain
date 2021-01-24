@@ -16,18 +16,18 @@ spec:
       labels:
         run: connectApi
     spec:
-      volumes:
-        - name: hello-kube-claim
-          persistentVolumeClaim:
-            claimName: hello-kube-pvc
+#      volumes:
+#        - name: hello-kube-claim
+#          persistentVolumeClaim:
+#            claimName: hello-kube-pvc
       containers:
         - name: client
           image: fernandesselwyn/hello-kube
           ports:
             - containerPort: 3000
-          volumeMounts:
-           - name: hello-kube-claim
-             mountPath: /app/data
+#          volumeMounts:
+#           - name: hello-kube-claim
+#             mountPath: /app/data
       imagePullSecrets:
         - name: regcred
 ---
