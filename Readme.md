@@ -1,1 +1,1 @@
-#Dipping toe into python on k8s
+#Training on OpenShift/K8s
