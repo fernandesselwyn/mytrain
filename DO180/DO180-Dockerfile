@@ -1,0 +1,48 @@
+#Use a base image of ubi7/ubi:7.7 and set an arbitrary maintainer.
+FROM ubi7/ubi:7.7
+
+#Notes
+MAINTAINER fernandeselwyn<selwyn.fernandes@cbts.com>
+LABEL vendor=SonaType \ 
+      com.sonatype.livense=ALV2 \
+      com.sonatype.name="Nexus Repository Manager"
+
+#Set the environment variable NEXUS_VERSION to 2.14.3-02, and set NEXUS_HOME to /opt/nexus.
+ENV NEXUS_VERSION=2.14.3-02
+ENV NEXUS_HOME=/opt/nexus
+
+#PreReq
+#Install the java-1.8.0-openjdk-devel package
+#The RPM repositories are configured in the provided training.repo file. Be sure to add this file to the container in the /etc/yum.repos.d directory.
+#ADD training.repo /etc/yum.repos.d/
+RUN yum install -y --setopt=tsflags=nodocs java-1.8.0-openjdk-devel && \
+    yum clean all -y
+
+#Run a command to create a nexus user and group. They both have a UID and GID of 1001.
+RUN groupadd -r nexus -f -g 1001 && \
+    useradd -u 1001 -r -g nexus -m \
+            -d ${NEXUS_HOME} -s /sbin/nologin \
+            -c "Nexus User" nexus && \
+    chown -R nexus:nexus ${NEXUS_HOME} &&\
+    chmod -R 755 ${NEXUS_HOME}/
+
+#Unpack the nexus-2.14.3-02-bundle.tar.gz file to the ${NEXUS_HOME}/ directory. Add the nexus-start.sh to the same directory.
+#Run a command, ln -s ${NEXUS_HOME}/nexus-${NEXUS_VERSION} ${NEXUS_HOME}/nexus2, to create a symlink in the container. Run a command to recursively change the ownership of the Nexus home directory to nexus:nexus.
+ADD nexus-2.14.3-02-bundle.tar.gz ${NEXUS_HOME}/
+ADD nexus-start.sh ${NEXUS_HOME}/
+
+#ADD above unzips as well
+#RUN tar zxvf ${NEXUS_HOME}/nexus-2.14.3-02-bundle.tar.gz ${NEXUS_HOME}/
+
+#Make the container run as the nexus user, and set the working directory to /opt/nexus.
+USER nexus
+WORKDIR ${NEXUS_HOME}
+
+#Define a volume mount point for the /opt/nexus/sonatype-work container directory. The Nexus server stores data in this directory.
+VOLUME ["/opt/nexus/sonatype-work"]
+
+#Set the default container command to nexus-start.sh.
+CMD ["sh","nexus-start.sh"]
+
+
+
