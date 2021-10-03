@@ -1,0 +1,27 @@
+export prj1_name=authorization-scc
+export app1_name=gitlab
+
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+oc new-project ${prj1_name}
+
+oc new-app --name ${app1_name} --docker-image quay.io/redhattraining/gitlab-ce:8.2.3-ce.0 
+
+oc get pods
+oc get pod/gitlab-###### -o yaml | oc adm policy scc-subject-review -f -
+
+oc create sa ${app1_name}-sa -n ${prj1_name}
+oc adm policy add-scc-to-user anyuid -z ${app1_name}-sa -n ${prj1_name}
+
+oc set serviceaccount deployment/${app1_name}
+
+oc expose service/${app1_name} --hostname ${app1_name}.${ocp_wildcard} --port 80
+
+curl -s http://${app1_name}.${ocp_wildcard}/status
+
+echo http://${app1_name}.${ocp_wildcard}/users/sign_in | grep 'title'
+
+oc delete project ${prj1_name}
+
+
