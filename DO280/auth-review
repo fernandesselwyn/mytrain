@@ -1,0 +1,38 @@
+export review_pass='L@bR3v!ew'
+
+htpasswd -D ~/DO280/labs/auth-review/tmp_users analyst
+htpasswd -b ~/DO280/labs/auth-review/tmp_users tester ${review_pass}
+htpasswd -b ~/DO280/labs/auth-review/tmp_users leader ${review_pass}
+htpasswd -b ~/DO280/labs/auth-review/tmp_users admin ${review_pass}
+htpasswd -b ~/DO280/labs/auth-review/tmp_users developer ${review_pass}
+
+ 
+oc create secret generic tmpusers --from-file htpasswd=/home/student/DO280/labs/auth-review/tmp_users -n openshift-config
+
+oc get oauth -o yaml >~/DO280/labs/auth-review/oauth.yaml
+
+oc adm policy add-cluster-role-to-user cluster-admin admin 
+
+oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth
+oc adm policy remove-cluster-role-from-group self-provisioner managers
+
+oc adm groups new managers
+oc adm groups add-users managers leader
+oc adm policy add-cluster-role-to-group --rolebinding-name managers self-provisioner managers
+oc policy add-role-to-group admin managers -n auth-review
+
+oc login -u leader -p ${review_pass}
+oc new-project auth-review
+
+oc login -u admin
+oc adm groups new developers
+oc adm groups add-users developers developer
+oc policy add-role-to-group edit developers -n auth-review
+
+oc adm groups new qa
+oc adm groups add-users qa tester 
+oc policy add-role-to-group view qa -n auth-review
+
+  oc get clusterrolebindings -o wide | grep -E 'NAME|self-provision'
+NAME                                                                        ROLE                                                                                    AGE   USERS                                                            GROUPS                                         SERVICEACCOUNTS
+self-provisioners                                                           ClusterRole/self-provisioner                                                            27m                                                                    system:authenticated:oauth  
