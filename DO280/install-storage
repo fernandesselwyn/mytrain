@@ -1,0 +1,48 @@
+export section_name=install-storage
+oc login -u ${ocp_user} -p ${ocp_pass} ${ocp_api}
+oc new-project ${section_name}
+oc get sc
+
+oc new-app --name postgresql-persistent --docker-image registry.redhat.io/rhel8/postgresql-13:1-7 -e POSTGRESQL_USER=redhat -e POSTGRESQL_PASSWORD=redhat123 -e POSTGRESQL_DATABASE=persistentdb
+
+oc set volume deployment/postgresql-persistent --add --name postgresql-storage --type pvc --claim-class nfs-storage --claim-mode rwo --claim-size 10Gi --mount-path /var/lib/pgsql --claim-name postgresql-storage 
+
+
+oc new-app --name postgresql-persistent2 --docker-image registry.redhat.io/rhel8/postgresql-13:1-7 -e POSTGRESQL_USER=redhat -e POSTGRESQL_PASSWORD=redhat123 -e POSTGRESQL_DATABASE=persistentdb
+
+
+oc set volume deployment/postgresql-persistent2 --add --name postgresql-storage --type pvc --claim-class nfs-storage --claim-mode rwo --claim-size 10Gi --mount-path /var/lib/pgsql --claim-name postgresql-storage 
+#!/bin/bash
+
+echo "Populating characters table"
+oc exec deployment.apps/postgresql-persistent -i redhat123 -- /usr/bin/psql -U redhat persistentdb < /home/student/DO280/labs/install-storage/init_data.sql
+
+#!/bin/bash
+
+echo "Checking characters table"
+
+if [ "$(oc get pods -o name -l deployment=postgresql-persistent)" != "" ]
+then
+  APP="deployment/postgresql-persistent"
+elif [ "$(oc get pods -o name -l deployment=postgresql-persistent2)" != "" ]
+then
+  APP="deployment/postgresql-persistent2"
+else
+  echo "ERROR: deployment/postgresql-persistent not found"
+  echo "ERROR: deployment/postgresql-persistent2 not found"
+fi
+
+if [ -n "${APP}" ]
+then
+  if [[ "$(oc exec ${APP} -i redhat123 -t -- /usr/bin/psql -U redhat persistentdb -c '\d characters' 2>&1)" != *"exit code 1"* ]]
+  then
+    OUTPUT=$(oc exec ${APP} -i redhat123 -t -- /usr/bin/psql -U redhat persistentdb -c 'select id,name,nationality from characters' 2>&1)
+  fi
+fi
+
+if [ -n "${OUTPUT}" ]
+then
+  echo "${OUTPUT}"
+else
+  echo "ERROR: 'characters' table does not exist"
+fi
