@@ -1,0 +1,55 @@
+#=====network-ingress====
+export prj1_name=network-ingress
+export app1_name=mysql
+export app2_name=todo
+
+podman login registry.redhat.io -u selwyn.fernandes.cbts -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+oc new-project ${prj1_name}
+
+oc create -f  ~/DO280/labs/network-ingress/todo-app-v1.yaml
+oc expose svc todo-http --hostname todo-http.apps.ocp4.example.com
+echo "http://todo-http.apps.ocp4.example.com"
+
+sudo tcpdump -i eth0 -A -n port 80 | grep js
+#Hit the URL and see if traffic is encrypted
+
+##### Route with Edge termination 
+oc create route edge todo-https --service todo-http --hostname todo-https.apps.ocp4.example.com
+
+curl -I -v https://todo-https.apps.ocp4.example.com
+#Observe the cert info
+
+#Traffic is encrypted between client and edge BUT NOT within the cluster
+#Debug pod to see 
+oc debug -t deployment/todo-http --image registry.access.redhat.com/ubi8/ubi:8.4
+
+curl -v  IP
+
+oc delete route todo-https
+
+#Generate TLS Cert
+#generate a private key for CA
+openssl genrsa -out training.key 2048
+
+#generate a CST for your URL
+openssl req -new -subj "/C=US/ST=North Carolina/L=Raleigh/O=Red Hat/CN=todo-https.apps.ocp4.example.com" -key training.key -out training.csr
+
+#generate the signed cert using the CA and CAkey
+openssl x509 -req -in training.csr -passin file:passphrase.txt -CA training-CA.pem -CAkey training-CA.key -CAcreateserial -out training.crt -days 1825 -sha256 -extfile training.ext
+
+#Create a secret to save this cert 
+oc create secret tls todo-certs --cert certs/training.crt --key certs/training.key
+
+#Redeploy app which incorporates the cert
+oc create -f todo-app-v2.yaml
+
+#describe pod to see the secret mounted
+oc describe pods | grep Mounts -A2
+
+##### Route with Passthrough 
+oc create route passthrough todo-https --service todo-https --port 8443 --hostname todo-https.apps.ocp4.example.com
+
+curl -vvI --cacert certs/training-CA.pem https://todo-https.apps.ocp4.example.com
+
