@@ -1,0 +1,53 @@
+#=====network-review====
+export prj1_name=network-review
+export prj2_name=network-test
+export app1_name=php-http
+export app2_name=php-https
+export app3_name=sample-app
+
+podman login registry.redhat.io -u selwyn.fernandes.cbts -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+oc new-project ${prj1_name}
+
+#update to port 8080
+~/DO280/labs/network-review/php-http.yaml
+
+oc create -f ~/DO280/labs/network-review/php-http.yaml
+
+oc expose service ${app1_name} ${app1_name}.${ocp_wildcard}
+echo "http://"${app1_name}.${ocp_wildcard}/
+
+#Create network policy deny all
+#update file to deny all
+~/DO280/labs/network-review/deny-all.yaml
+oc create -f ~/DO280/labs/network-review/deny-all.yaml
+
+#update to allow app ingress
+~/DO280/labs/network-review/allow-from-openshift-ingress.yaml
+
+#Switch to admin to label default project
+oc label project default name=network.openshift.io/policy-group=ingress
+
+#Create a Cert for php-https.apps.ocp4.example.com
+export review_key=/home/student/DO280/labs/network-review/certs/training.key
+
+#Create CSR
+
+export review_csr=/home/student/DO280/labs/network-review/certs/training.crt
+
+#Create CRT
+
+export review_cst=/home/student/DO280/labs/network-review/certs/training.crt
+
+#upload to TLS secret
+
+oc create sercret tls php-certs --from-file 
+
+#update to port 8443, container location, tls secret to mount
+~/DO280/labs/network-review/php-https.yaml
+
+oc create -f ~/DO280/labs/network-review/php-https.yaml
+oc expose service ${app2_name} ${app1_name}.${ocp_wildcard}
+echo "https://"${app2_name}.${ocp_wildcard}/
+
