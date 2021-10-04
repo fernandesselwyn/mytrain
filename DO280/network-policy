@@ -1,0 +1,36 @@
+#=====network-policy====
+export prj1_name=network-policy
+export prj2_name=network-test
+export app1_name=hello
+export app2_name=test
+export app3_name=sample-app
+
+podman login registry.redhat.io -u selwyn.fernandes.cbts -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+oc new-project ${prj1_name}
+
+oc new-app --name ${app1_name} --docker-image quay.io/redhattraining/hello-world-nginx:v1.0
+oc new-app --name ${app2_name} --docker-image quay.io/redhattraining/hello-world-nginx:v1.0
+
+oc expose service ${app1_name}
+
+. /home/student/DO280/labs/network-policy/display-project-info.sh
+cp  ~/DO280/labs/network-policy/display-project-info.sh ~/mytrain/DO280/network-policy-projectinfo.sh
+
+oc new-project ${prj2_name}
+
+oc new-app --name ${app3_name} --docker-image quay.io/redhattraining/hello-world-nginx:v1.0
+. /home/student/DO280/labs/network-policy/display-project-info.sh
+
+oc project ${prj1_name}
+cp ~/DO280/solutions/network-policy/deny-all.yaml ~/mytrain/DO280/network-policy-deny-all.yaml
+cp  ~/DO280/labs/network-policy/allow-specific.yaml ~/mytrain/DO280/network-policy-allow-specific.yaml
+cp ~/DO280/labs/network-policy/allow-from-openshift-ingress.yaml ~/mytrain/DO280/network-policy-allow-from-openshift-ingress.yaml
+
+oc get networkpolicies -n ${prj1_name}
+oc get networkpolicies -n ${prj2_name}
+
+
+oc project ${prj2_name}
+oc label namespace network-test name=network-test
