@@ -8,46 +8,53 @@ export app3_name=sample-app
 podman login registry.redhat.io -u selwyn.fernandes.cbts -p ${rh_registry_pass}
 podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
 
+#1
 oc new-project ${prj1_name}
 
+#2
 #update to port 8080
-~/DO280/labs/network-review/php-http.yaml
+cp ~/DO280/labs/network-review/php-http.yaml ~/mytrain/DO280/network-review-php-http.yaml
+vi ~/mytrain/DO280/network-review-php-http.yaml
 
-oc create -f ~/DO280/labs/network-review/php-http.yaml
-
-oc expose service ${app1_name} ${app1_name}.${ocp_wildcard}
+#3
+oc create -f ~/mytrain/DO280/network-review-php-http.yaml
+oc expose service ${app1_name} --hostname ${app1_name}.${ocp_wildcard}
 echo "http://"${app1_name}.${ocp_wildcard}/
 
+#4
 #Create network policy deny all
 #update file to deny all
-~/DO280/labs/network-review/deny-all.yaml
-oc create -f ~/DO280/labs/network-review/deny-all.yaml
+cp ~/DO280/labs/network-review/deny-all.yaml ~/mytrain/DO280/network-review-deny-all.yaml
+vi ~/mytrain/DO280/network-review-deny-all.yaml
+oc create -f ~/mytrain/DO280/network-review-deny-all.yaml
 
+#5
 #update to allow app ingress
-~/DO280/labs/network-review/allow-from-openshift-ingress.yaml
-
+cp ~/DO280/labs/network-review/allow-from-openshift-ingress.yaml ~/mytrain/DO280/network-review-allow-from-openshift-ingress.yaml
+vi ~/mytrain/DO280/network-review-allow-from-openshift-ingress.yaml
+oc create -f ~/mytrain/DO280/network-review-allow-from-openshift-ingress.yaml
 #Switch to admin to label default project
-oc label project default name=network.openshift.io/policy-group=ingress
+oc label ns default name=network.openshift.io/policy-group=ingress
 
+#6
 #Create a Cert for php-https.apps.ocp4.example.com
 export review_key=/home/student/DO280/labs/network-review/certs/training.key
-
-#Create CSR
-
 export review_csr=/home/student/DO280/labs/network-review/certs/training.crt
-
+#Create CSR
+openssl req -new -key training.key -subj "/C=US/ST=North Carolina/L=Raleigh/O=Red Hat/CN=php-https.${ocp_wildcard}" -out training.csr
 #Create CRT
+openssl x509 -req -in training.csr -CA training-CA.pem -CAkey training-CA.key -CAcreateserial -passin file:passphrase.txt -out training.crt -days 3650 -sha256 -extfile training.ext
 
-export review_cst=/home/student/DO280/labs/network-review/certs/training.crt
-
+#7
 #upload to TLS secret
+oc create secret tls php-certs --cert training.crt --key training.key
 
-oc create sercret tls php-certs --from-file 
-
+#8
 #update to port 8443, container location, tls secret to mount
-~/DO280/labs/network-review/php-https.yaml
+cp ~/DO280/labs/network-review/php-https.yaml ~/mytrain/DO280/network-review-php-https.yaml
+vi ~/mytrain/DO280/network-review-php-https.yaml
+oc create -f ~/mytrain/DO280/network-review-php-https.yaml
 
-oc create -f ~/DO280/labs/network-review/php-https.yaml
-oc expose service ${app2_name} ${app1_name}.${ocp_wildcard}
+oc create route passthrough ${app2_name} --service ${app2_name} --port 8443 --hostname ${app2_name}.${ocp_wildcard}
 echo "https://"${app2_name}.${ocp_wildcard}/
 

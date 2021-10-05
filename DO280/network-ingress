@@ -3,7 +3,7 @@ export prj1_name=network-ingress
 export app1_name=mysql
 export app2_name=todo
 
-podman login registry.redhat.io -u selwyn.fernandes.cbts -p ${rh_registry_pass}
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
 podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
 
 oc new-project ${prj1_name}
@@ -17,6 +17,7 @@ sudo tcpdump -i eth0 -A -n port 80 | grep js
 
 ##### Route with Edge termination 
 oc create route edge todo-https --service todo-http --hostname todo-https.apps.ocp4.example.com
+echo "https://todo-https.apps.ocp4.example.com"
 
 curl -I -v https://todo-https.apps.ocp4.example.com
 #Observe the cert info

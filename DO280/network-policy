@@ -5,7 +5,7 @@ export app1_name=hello
 export app2_name=test
 export app3_name=sample-app
 
-podman login registry.redhat.io -u selwyn.fernandes.cbts -p ${rh_registry_pass}
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
 podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
 
 oc new-project ${prj1_name}
@@ -15,18 +15,33 @@ oc new-app --name ${app2_name} --docker-image quay.io/redhattraining/hello-world
 
 oc expose service ${app1_name}
 
-. /home/student/DO280/labs/network-policy/display-project-info.sh
 cp  ~/DO280/labs/network-policy/display-project-info.sh ~/mytrain/DO280/network-policy-projectinfo.sh
+cp ~/DO280/solutions/network-policy/deny-all.yaml ~/mytrain/DO280/network-policy-deny-all.yaml
+cp  ~/DO280/labs/network-policy/allow-specific.yaml ~/mytrain/DO280/network-policy-allow-specific.yaml
+cp ~/DO280/labs/network-policy/allow-from-openshift-ingress.yaml ~/mytrain/DO280/network-policy-allow-from-openshift-ingress.yaml
+
+. /home/student/DO280/labs/network-policy/display-project-info.sh
+oc rsh test-54f6b56774-lqmqq curl 10.10.0.16:8080 | grep Hello
+oc rsh hello-b8d559466-sw9gt curl 10.10.0.15:8080 | grep Hello
+curl -s ${app1_name}-network-policy.${ocp_wildcard} | grep Hello
 
 oc new-project ${prj2_name}
 
 oc new-app --name ${app3_name} --docker-image quay.io/redhattraining/hello-world-nginx:v1.0
 . /home/student/DO280/labs/network-policy/display-project-info.sh
 
+#Validate that pod in new project can access pods in other namespace
+oc rsh sample-app-5645b95bc8-znjkb curl 10.10.0.16:8080 | grep Hello
+oc rsh sample-app-5645b95bc8-znjkb curl 10.10.0.15:8080 | grep Hello
+#curl -s ${app2_name}-network-policy.${ocp_wildcard} | grep Hello
+
 oc project ${prj1_name}
-cp ~/DO280/solutions/network-policy/deny-all.yaml ~/mytrain/DO280/network-policy-deny-all.yaml
-cp  ~/DO280/labs/network-policy/allow-specific.yaml ~/mytrain/DO280/network-policy-allow-specific.yaml
-cp ~/DO280/labs/network-policy/allow-from-openshift-ingress.yaml ~/mytrain/DO280/network-policy-allow-from-openshift-ingress.yaml
+
+oc create -f /home/student/DO280/solutions/network-policy/deny-all.yaml
+vi /home/student/mytrain/DO280/network-policy-allow-specific.yaml
+envsubst < /home/student/mytrain/DO280/network-policy-allow-specific.yaml | oc create -f -
+vi /home/student/mytrain/DO280/network-policy-allow-from-openshift-ingress.yaml
+oc create -n ${prj1_name} -f  /home/student/mytrain/DO280/network-policy-allow-from-openshift-ingress.yaml
 
 oc get networkpolicies -n ${prj1_name}
 oc get networkpolicies -n ${prj2_name}
