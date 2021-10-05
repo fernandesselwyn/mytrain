@@ -1,0 +1,56 @@
+#=====network-sdn====
+export prj1_name=network-sdn
+export app1_name=mysql
+export app2_name=todo
+
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+oc new-project ${prj1_name}
+
+oc create -f todo-db.yaml
+
+oc cp db-data.sql mysql-xxx:/tmp/
+oc rsh mysql-xxx
+mysql -u root items < /tmp/db-data.sql
+mysql -u root items -e "show tables;"
+
+oc create -f todo-frontend.yaml
+
+oc expose service frontend --hostname ${app2_name}.${ocp_wildcard}
+
+echo "http://"${app2_name}.${ocp_wildcard}/todo/
+
+oc logs frontend-xxx
+
+#Get IP for the service
+oc get service/mysql -o jsonpath="{.spec.clusterIP}{'\n'}"
+
+oc debug -t deployment/frontend 
+#from front end telnet to DB server IP:3306
+
+oc get service/frontend 
+
+#Get IP for the service
+oc get service/frontend -o jsonpath="{.spec.clusterIP}{'\n'}"
+
+#Debug deployment with an OVERIDE of IMAGE??!!!
+oc debug -t deployment/myysql --image registry.access.redhat.com/ubi8/ubi:8.4
+
+#Connect to it with a timeout: curl -m 10 -v http://IP:8080
+
+oc get pods -o wide
+#Capture pod IP instead and try to the connection above again. 
+
+oc get svc -o wide
+
+oc describe svc/frontend 
+oc describe deployment/frontned | grep Labels -A1
+
+oc edit svc/frontend
+#update selector to frontend
+
+echo "http://"${app2_name}.${ocp_wildcard}/todo/
+#hit the application again
+
+oc delete project ${prj1_name}
