@@ -14,6 +14,7 @@ oc new-project ${prj1_name}
 cp ~/DO280/labs/schedule-limit/hello-limit.yaml ~/mytrain/DO280/resource-schedule-limit-hello-limit.yaml
 cp ~/DO280/labs/schedule-limit/loadtest.yaml ~/mytrain/DO280/resource-schedule-limit-loadtest.yaml
 
+oc create deployment hello-limit --image quay.io/redhattraining/hello-world-nginx:v1.0 --dry-run=client -o yaml > ~/DO280/labs/schedule-limit/hello-limit.yaml
 
 #7
 curl -X GET http://loadtest.apps.ocp4.example.com/api/loadtest/v1/mem/200/60
