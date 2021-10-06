@@ -2,7 +2,7 @@
 export prj1_name=schedule-limit
 export prj2_name=template-test
 export app1_name=hello-limit
-export app2_name=php-https
+export app2_name=loadtest
 export app3_name=sample-app
 
 podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
@@ -15,6 +15,8 @@ cp ~/DO280/labs/schedule-limit/hello-limit.yaml ~/mytrain/DO280/resource-schedul
 cp ~/DO280/labs/schedule-limit/loadtest.yaml ~/mytrain/DO280/resource-schedule-limit-loadtest.yaml
 
 oc create deployment hello-limit --image quay.io/redhattraining/hello-world-nginx:v1.0 --dry-run=client -o yaml > ~/DO280/labs/schedule-limit/hello-limit.yaml
+#update with 3cpu/20memory resources & create. Then lower cpu to 1.2
+oc get events --field-selector type=Warning
 
 #7
 curl -X GET http://loadtest.apps.ocp4.example.com/api/loadtest/v1/mem/200/60
