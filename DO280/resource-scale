@@ -1,0 +1,27 @@
+#=========resource-scale
+export prj1_name=schedule-scale
+export prj2_name=network-test
+export app1_name=php-http
+export app2_name=scaling
+export app3_name=sample-app
+
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+#1
+oc new-project ${prj1_name}
+
+
+cp ~/DO280/labs/schedule-scale/loadtest.yaml ~/mytrain/DO280/resource-schedule-scale-loadtest.yaml
+cp ~/DO280/labs/schedule-scale/curl-route.sh ~/mytrain/DO280/resource-schedule-scale-curl-route.sh
+
+
+
+curl -X GET http://loadtest-schedule-scale.apps.ocp4.example.com/api/loadtest/v1/cpu/1
+
+
+#5
+oc new-app ${app2_name} --docker-image quay.io/redhattraining/scaling:v1.0 
+oc expose svc/${app2_name}
+oc scale --replicas 3 deployment/${app2_name}
+
