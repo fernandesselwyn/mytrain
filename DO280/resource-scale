@@ -21,7 +21,7 @@ curl -X GET http://loadtest-schedule-scale.apps.ocp4.example.com/api/loadtest/v1
 
 
 #5
-oc new-app ${app2_name} --docker-image quay.io/redhattraining/scaling:v1.0 
+oc new-app --name ${app2_name} --docker-image quay.io/redhattraining/scaling:v1.0 
 oc expose svc/${app2_name}
 oc scale --replicas 3 deployment/${app2_name}
 
