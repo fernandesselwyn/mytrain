@@ -1,0 +1,13 @@
+#=========resource-scale
+export prj1_name=schedule-scale
+export prj2_name=network-test
+export app1_name=php-http
+export app2_name=scaling
+export app3_name=sample-app
+
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+#1
+oc new-project ${prj1_name}
+
