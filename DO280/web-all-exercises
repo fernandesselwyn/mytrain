@@ -1,0 +1,1 @@
+avg(container_memory_working_set_bytes{namespace='console-apps'}) BY (pod)
