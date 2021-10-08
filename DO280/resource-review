@@ -1,0 +1,40 @@
+#=========resource-scale
+export prj1_name=schedule-review
+export prj2_name=schedule-review-ts
+export app1_name=loadtest
+export app2_name=scaling
+export app3_name=sample-app
+
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+#1
+oc label node/master01 tier=gold
+oc label node/master02 tier=silver
+
+#2
+oc new-project ${prj1_name}
+
+#3
+oc new-app --name ${app1_name} --docker-image quay.io/redhattraining/loadtest:v1.0
+oc set resources deployment/${app1_name} --requests cpu=100m,memory=20Mi # --limits cpu=1m,memory=2Mi 
+#edit and add to deployment
+nodeSelector:
+  tier: silver
+
+#4
+oc get svc
+oc expose service loadtest
+curl http://${app1_name}-${prj1_name}.${ocp_wildcard}/api/loadtest/v1/healthz
+
+#5
+watch "echo "==pods==" && oc get pods && echo "==top===" && oc adm top pods && echo "===" && oc get hpa"
+
+oc autoscale deployment/${app1_name} --min 2 --max 40 --cpu-percent 70
+curl -X GET http://${app1_name}-${prj1_name}.${ocp_wildcard}/api/loadtest/v1/cpu/3
+
+#6
+oc login -u admin
+oc create resourcequota review-quota --hard=cpu=1,memory=2G,pods=20 -n ${prj1_name}
+
+

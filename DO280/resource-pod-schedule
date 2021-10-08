@@ -1,0 +1,36 @@
+#========resource-pod-schedule
+export prj1_name=schedule-pods
+export prj2_name=schedule-pods-ts
+export app1_name=hello
+export app2_name=php-https
+export app3_name=sample-app
+
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
+podman login quay.io -u ${quay_user}+rol -p ${quay_pass}
+
+#1
+oc new-project ${prj1_name}
+
+#2
+oc new-app --name ${app1_name} --docker-image quay.io/redhattraining/hello-world-nginx:v1.0
+oc expose service ${app1_name}
+oc scale --replica 4 deployment/${app1_name}
+
+#3 label nodes
+oc label node master01 env=dev
+oc label node master02 env=dev
+
+#4 assign pods
+oc edit deployment/${app1_name} 
+nodeSelector:
+  env: dev
+
+#5
+oc label node -l env env-
+
+#6
+oc project ${prj2_name}
+oc edit deployment/hello-ts
+nodeSelector:
+  client: ACME
+
