@@ -1,0 +1,102 @@
+source /usr/local/etc/ocp4.config
+source rolconfig
+export prj1_name=review-troubleshoot
+export prj1_name=review-troubleshoot
+export app1_name=hello-world-nginx
+export app1_src=https://github.com/RedHatTraining/DO280-apps
+export secret1=compreview-users
+export app2_name=mysql
+export app2_src=registry.redhat.io/rhel8/mysql-80:1-139
+export secret2=mysql
+export app3_name=wordpress
+export app3_src=quay.io/redhattraining/wordpress:5.7-php7.4-apache
+export app3_name=famous-quotes
+export app3_src=quay.io/redhattraining/wordpress:5.7-php7.4-apache
+
+
+export secret2=mysql
+export user_pass=review
+
+podman login quay.io -u ${quay_user} -p ${quay_pass}
+podman login registry.redhat.io -u ${rh_registry_user} -p ${rh_registry_pass}
+
+#1 As kubeadmin
+oc login -u kubeadmin -p ${ocp_pass} ${ocp_api}
+oc new-project ${prj1_name}
+
+#2 App-deployment
+oc new-app ${app1_src} --name ${app1_name} --context-dir ${app1_name}
+oc get svc
+oc expose service ${app1_name} --hostname ${app1_name}.${ocp_wildcard}
+
+#3 IDP
+htpasswd -Bnb ~/htpass-review admin review
+htpasswd -b ~/htpass-review admin review
+htpasswd -b ~/htpass-review leader review
+htpasswd -b ~/htpass-review developer review
+htpasswd -b ~/htpass-review qa-engineer review
+
+oc create secret generic ${secret1} --from-file htpasswd=/home/student/htpass-review -n openshift-config
+oc edit oauth/clusters
+
+oc adm policy add-cluster-role-to-user cluster-admin admin
+
+oc login -u admin -p ${user_pass}
+oc login -u leader -p ${user_pass}
+oc login -u developer -p ${user_pass}
+oc login -u qa-engineer -p ${user_pass}
+
+#4
+oc login -u admin
+oc adm groups new leaders
+oc adm groups new developers
+oc adm groups new qa
+
+oc adm groups add-users leaders leader
+oc adm groups add-users developers developer
+oc adm groups add-users qa qa-engineer
+
+oc adm policy add-clusterrole-to-group self-provisioners leaders
+oc adm policy add-role-to-group edit developers -n ${prj1_name}
+oc adm policy add-role-to-group view qa -n ${prj1_name}
+
+oc edit clusterrolebinding/self-provisioners
+
+#5
+oc login -u developer
+#needs review
+oc create pvc mysql_data --size 2GB
+#NEEDS review
+oc create secret generic mysql --from-literal=password=r3dh4t123
+oc new-app --name ${app2_name} --docker-image=${app2_src}
+oc set volume deployment/mysql --add -t pvc --claim-name=mysqldata -m /var/lib/mysql/data
+oc set env deployment/mysql --from=secret/mysql --prefix=MYSQL_ROOT_
+
+#6 
+oc create sa ${app3_name}-sa
+oc login -u admin
+oc adm policy add-scc-to-user anyuid -z ${app3_name}-sa -n ${prj1_name}
+
+oc login -u developer
+oc rsh mysql-
+mysql -uroot 
+create database wordpress;
+show databases;
+exit
+
+oc new-app --name ${app3_name} --docker-image=${app3_src} -e WORDPRESS_DB_HOST=mysql -e WORDPRESS_DB_NAME=wordpress -e WORDPRESS_USER=wpuser -e WORDPRESS_PASSWORD=wppass -e WORDPRESS_TITLE=review-troubleshoot -e WORDPRESS_URL=${app3_name}.${ocp_wildcard} -e WORDPRESS_EMAIL=student@redhat.com -e WORDPRESS_DB_USER=root
+oc set env deployment/${app3_name} --from=secret/mysql --prefix=WORDPRESS_DB_
+oc set serviceaccount deployment/${app3_name} ${app3_name}-sa
+oc expose svc ${app3_name} --hostname ${app3_name}.${ocp_wildcard}
+echo "http://${app3_name}.${ocp_wildcard}"
+
+
+#7
+. ~/DO280/labs/review-troubleshoot/deploy_famous-quotes.sh #Consumes ~/DO280/labs/review-troubleshoot/famous-quotes.yaml 
+oc set env deployment/${app4_name} --from=secret/mysql --prefix=QUOTES_
+
+#remove nodeselector
+oc edit deployment/${app4_name} 
+oc expose svc ${app4_name} --hostname ${app4_name}.${ocp_wildcard}
+echo "http://${app4_name}.${ocp_wildcard}"
+
