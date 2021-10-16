@@ -1,0 +1,61 @@
+oc adm create-bootstrap-project-template -o yaml >project-template.yaml
+#edit with required labes, add - lists for additional items, eg. Network polocies, quotas, limits
+#- apiVersion: networking.k8s.io/v1
+#  kind: NetworkPolicy
+#  metadata:
+#    name: allow-from-openshift-ingress
+#  spec:
+#    podSelector: {}
+#    ingress:
+#    - from:
+#      - namespaceSelector:
+#          matchLabels:
+#            network.openshift.io/policy-group: ingress
+#- apiVersion: networking.k8s.io/v1
+#  kind: NetworkPolicy
+#  metadata:
+#    name: allow-same-namespace
+#  spec:
+#    podSelector: {}
+#    ingress:
+#    - from:
+#      - podSelector: {}
+#- apiVersion: v1
+#  kind: LimitRange
+#  metadata:
+#    name: project-limitrange
+#  spec:
+#    limits:
+#    - default:
+#        memory: 100Mi
+#        cpu: 100m
+#      defaultRequest:
+#        memory: 30Mi
+#        cpu: 30m
+#      type: Container
+#- apiVersion: v1
+#  kind: ResourceQuota
+#  metadata:
+#    name: project-quota
+#  spec:
+#    hard:
+#      pods: '10'
+#      requests.cpu: '2'
+#      requests.memory: 1Gi
+#      limits.cpu: '4'
+#      limits.memory: 4Gi
+
+#Create templete in openshift-config
+oc create -f project-template.yaml -n openshift-config
+oc get templates 
+
+#Make default action on new-project to use the template
+oc edit projects.config.openshift.io/cluster
+
+#update this with:
+#spec:
+#  projectRequestTemplate:
+#    name: project-template
+
+#Watch the pods in openshift-apiserver. Once all pods have been restarted the new-project is enforced. 
+
